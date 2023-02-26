@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsServer.h>
+#include <../personal_configs/wifi_router.cpp>
 
 #define RX_PIN 26 //Pino 26 RX DO SENSOR!
 #define TX_PIN 25 //Pino 25 TX DO SENSOR!
@@ -154,7 +155,7 @@ void receiveMsg(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 
 void setup() {
   configSerialMonitor(115200);
-  connectToRouter("COLOCAR SSID", "COLOCAR SENHA");  
+  connectToRouter(ROUTER_NAME, ROUTER_PASS);  
   delay(1000);
 
   pinMode(RX_PIN, INPUT);
@@ -242,27 +243,31 @@ void lendoDados(){
   return;
 }
 
+int logTimerSimulator = 0;
 void enviandoDados(){
   webSocket.loop();
   int bufferDelay = 20;
   if (send_log && webSocket.connectedClients())
   {
-    // webSocket.broadcastTXT(msg, strlen(msg));
-    // String logs = "{\"logs\":{\"port1\":[{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"}],\"port2\":[{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"}]}}";
     String logs = "{\"logs\":{\"port1\":[";
     for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"}");
-      else logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"},");
+      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
+      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
+      logTimerSimulator++;
     }
+    logTimerSimulator -= bufferDelay;
     logs.concat("],\"port2\":[");
     for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"}");
-      else logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"},");
+      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
+      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
+      logTimerSimulator++;
     }
     logs.concat("]}}");
     webSocket.broadcastTXT(logs);
     counter++;
     delay(bufferDelay);
+  } else {
+    logTimerSimulator = 0;
   }
 }
 
