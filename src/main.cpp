@@ -273,7 +273,7 @@ void enviandoDados(){
 
 
 void loop() {
-  // lendoDados();  
+  lendoDados();  
   enviandoDados();
-  // Serial.println(valorDoSensor);
+  Serial.println(valorDoSensor);
 }
