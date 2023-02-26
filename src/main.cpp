@@ -242,33 +242,37 @@ void lendoDados(){
   return;
 }
 
+int logTimerSimulator = 0;
 void enviandoDados(){
   webSocket.loop();
   int bufferDelay = 20;
   if (send_log && webSocket.connectedClients())
   {
-    // webSocket.broadcastTXT(msg, strlen(msg));
-    // String logs = "{\"logs\":{\"port1\":[{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"}],\"port2\":[{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"},{\"value\":" + String(random(255)) + ",\"time\":\"hh:mm:ss:llll\"}]}}";
     String logs = "{\"logs\":{\"port1\":[";
     for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"}");
-      else logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"},");
+      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
+      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
+      logTimerSimulator++;
     }
+    logTimerSimulator -= bufferDelay;
     logs.concat("],\"port2\":[");
     for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"}");
-      else logs.concat("{\"value\":" + String(valorDoSensor) + ",\"time\":\"hh:mm:ss:llll\"},");
+      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
+      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
+      logTimerSimulator++;
     }
     logs.concat("]}}");
     webSocket.broadcastTXT(logs);
     counter++;
     delay(bufferDelay);
+  } else {
+    logTimerSimulator = 0;
   }
 }
 
 
 void loop() {
-  lendoDados();  
+  // lendoDados();  
   enviandoDados();
-  Serial.println(valorDoSensor);
+  // Serial.println(valorDoSensor);
 }
