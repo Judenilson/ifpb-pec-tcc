@@ -1,10 +1,13 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsServer.h>
+#include "time.h"
 #include <../personal_configs/wifi_router.cpp>
 
-#define RX_PIN 26 //Pino 26 RX DO SENSOR!
-#define TX_PIN 25 //Pino 25 TX DO SENSOR!
+unsigned long time_initial_offset = 0;
+
+#define RX_PIN 26 // Pino 26 RX DO SENSOR!
+#define TX_PIN 25 // Pino 25 TX DO SENSOR!
 
 String bufferS = "";
 int16_t numero = 0;
@@ -13,7 +16,7 @@ int valorDoSensor = 0;
 /*
 Se a conexão inicial transmite em 2400 Bauds, temos então 2400 amostras(bits) por segundo.
 Bem como a cada 416us temos 1 bit!
-A primeira msg, que é uma msg do sistema é de 1 byte. Ou seja, 8 amostras, 3.33ms. 
+A primeira msg, que é uma msg do sistema é de 1 byte. Ou seja, 8 amostras, 3.33ms.
 */
 
 boolean send_log = false;
@@ -89,7 +92,10 @@ void receiveMsg(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 
     strcpy(payloadString, (char *)(payload));
     if (strcmp(payloadString, "start logs") == 0)
+    {
       send_log = true;
+      time_initial_offset = millis();
+    }
     else if (strcmp(payloadString, "stop logs") == 0)
       send_log = false;
     // connection confirmation
@@ -154,13 +160,14 @@ void receiveMsg(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
   };
 }
 
-void setup() {
+void setup()
+{
   configSerialMonitor(115200);
-  connectToRouter(ROUTER_NAME, ROUTER_PASS);  
+  connectToRouter(ROUTER_NAME, ROUTER_PASS);
   delay(1000);
 
   pinMode(RX_PIN, INPUT);
-  pinMode(TX_PIN, INPUT);  
+  pinMode(TX_PIN, INPUT);
   delay(1000);
 
   webSocket.begin();
@@ -168,7 +175,8 @@ void setup() {
   Serial.print("Configurado");
 }
 
-int estadoAltoRepouso(){
+int estadoAltoRepouso()
+{
   /*
   Leitura do estado de repouso, antes do envio de dados.
   Nesse estado o sinal está em 1 constantemente até cair para 0 quando se dá o início de envio.
@@ -176,67 +184,88 @@ int estadoAltoRepouso(){
   */
   ets_delay_us(5);
   int count = 0;
-  while(1){      
-    if (digitalRead(TX_PIN)){        
-      count ++;
-    } else {
+  while (1)
+  {
+    if (digitalRead(TX_PIN))
+    {
+      count++;
+    }
+    else
+    {
       count = 0;
     }
-    if (count >= 10){
+    if (count >= 10)
+    {
       return 1;
     }
-    ets_delay_us(14); 
+    ets_delay_us(14);
   }
   return 0;
 }
 
-void lendoDados(){  
-  if (estadoAltoRepouso()){
-    while(1){
-      if(!digitalRead(TX_PIN)){
+void lendoDados()
+{
+  if (estadoAltoRepouso())
+  {
+    while (1)
+    {
+      if (!digitalRead(TX_PIN))
+      {
         ets_delay_us(5);
         int i = 0;
         int k = 0;
         bufferS = "";
         numero = 0;
 
-        while(i < 40){        
+        while (i < 40)
+        {
           int j = 0;
           int bit = 0;
-          while(j <= 9){
-            if (digitalRead(TX_PIN) == 1) {
+          while (j <= 9)
+          {
+            if (digitalRead(TX_PIN) == 1)
+            {
               bit++;
-            } else {
+            }
+            else
+            {
               bit--;
             };
             j++;
-          } 
-          if (bit > 0){
+          }
+          if (bit > 0)
+          {
             bufferS += '1';
           }
-          else {
+          else
+          {
             bufferS += '0';
-          }        
-          i++;  
-          ets_delay_us(14); 
+          }
+          i++;
+          ets_delay_us(14);
         }
 
-        int incremento =  0;
-        for (int i = 11; i < 19; i++)  {
-          if (bufferS[i] == '1'){
+        int incremento = 0;
+        for (int i = 11; i < 19; i++)
+        {
+          if (bufferS[i] == '1')
+          {
             numero |= 1 << incremento;
           }
           incremento++;
         }
-        for (int i = 21; i < 29; i++)  {
-          if (bufferS[i] == '1'){
+        for (int i = 21; i < 29; i++)
+        {
+          if (bufferS[i] == '1')
+          {
             numero |= 1 << incremento;
           }
           incremento++;
         }
-        if(numero >= 0){
+        if (numero >= 0)
+        {
           valorDoSensor = numero;
-        }  
+        }
         break;
       }
     }
@@ -244,37 +273,38 @@ void lendoDados(){
   return;
 }
 
-int logTimerSimulator = 0;
-void enviandoDados(){
+void enviandoDados()
+{
   webSocket.loop();
   int bufferDelay = 20;
   if (send_log && webSocket.connectedClients())
   {
     String logs = "{\"logs\":{\"port1\":[";
-    for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
-      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
-      logTimerSimulator++;
+    for (int i = 0; i < bufferDelay; i++)
+    {
+      if (i == bufferDelay - 1)
+        logs.concat("{\"value\":" + String(random(255)) + ",\"time\":" + String(millis() - time_initial_offset) + "}");
+      else
+        logs.concat("{\"value\":" + String(random(255)) + ",\"time\":" + String(millis() - time_initial_offset) + "},");
     }
-    logTimerSimulator -= bufferDelay;
     logs.concat("],\"port2\":[");
-    for (int i = 0; i < bufferDelay; i++) {
-      if (i == bufferDelay - 1) logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "}");
-      else logs.concat("{\"value\":" + String(random(10)) + ",\"time\":" + String(logTimerSimulator) + "},");
-      logTimerSimulator++;
+    for (int i = 0; i < bufferDelay; i++)
+    {
+      if (i == bufferDelay - 1)
+        logs.concat("{\"value\":" + String(random(255)) + ",\"time\":" + String(millis() - time_initial_offset) + "}");
+      else
+        logs.concat("{\"value\":" + String(random(255)) + ",\"time\":" + String(millis() - time_initial_offset) + "},");
     }
     logs.concat("]}}");
     webSocket.broadcastTXT(logs);
     counter++;
     delay(bufferDelay);
-  } else {
-    logTimerSimulator = 0;
   }
 }
 
-
-void loop() {
-  // lendoDados();  
+void loop()
+{
+  // lendoDados();
   enviandoDados();
   // Serial.println(valorDoSensor);
 }
