@@ -21,7 +21,6 @@ A primeira msg, que é uma msg do sistema é de 1 byte. Ou seja, 8 amostras, 3.3
 
 boolean send_log = false;
 WebSocketsServer webSocket = WebSocketsServer(81);
-int counter = 0;
 
 void configSerialMonitor(int num = 9600)
 {
@@ -297,7 +296,6 @@ void enviandoDados()
     }
     logs.concat("]}}");
     webSocket.broadcastTXT(logs);
-    counter++;
     delay(bufferDelay);
   }
 }
